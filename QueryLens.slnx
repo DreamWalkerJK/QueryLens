@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="QueryLens.Core/QueryLens.Core.csproj" />
+  <Project Path="QueryLens.Desktop/QueryLens.Desktop.csproj" />
+  <Project Path="QueryLens.Infrastructure/QueryLens.Infrastructure.csproj" />
+  <Project Path="QueryLens.Tests/QueryLens.Tests.csproj" />
+</Solution>

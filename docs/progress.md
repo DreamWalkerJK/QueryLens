@@ -1,0 +1,15 @@
+# 实施进度与交付记录
+
+2026-09-13 仓库检查：main，初始提交 5e13248，origin=https://github.com/DreamWalkerJK/QueryLens.git；没有用户修改或 AGENTS.md。创建 codex/querylens-implementation。
+
+| 里程碑 | 产出与状态 | Git 记录 |
+|---|---|---|
+| M1 | .NET10/Avalonia MVVM 桌面壳、工程与完整需求追踪 | 验证/提交中 |
+| M2 | 方言词法、计划解析、SQLite、导入/增量/诊断测试 | 开发中 |
+| M3 | 实际数据库驱动、受保护密码、能力检测与采集 | 开发中 |
+| M4 | 完整桌面连接/采集/离线/计划/报告/保留工作流 | 待实现 |
+| M5 | 真实容器集成、桌面冒烟、性能、发布和交付文档 | 待完成 |
+
+Docker 引擎 29.6.1 可用。已有 MySQL Windows 服务和 openGauss 容器属于用户现有环境，不访问配置/凭据、不查询。将创建 QueryLens 专属容器。真实 Huawei GaussDB 未提供，必须独立标记未验证，openGauss 不能替代其验证。
+
+本目标仍在执行。早期框架运行/12 项测试仅表示局部进展，不表示最终验收通过。每次 push 后在此追加真实 hash 和状态，不重写已推送历史。

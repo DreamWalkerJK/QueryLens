@@ -1,0 +1,4 @@
+# sample slow log (offline fixture only)
+# This file is not a real database collection result.
+2026-09-13T10:00:00Z duration_ms=1840 rows=120 SELECT * FROM orders WHERE customer_id = 42 ORDER BY created_at DESC;
+2026-09-13T10:01:00Z duration_ms=920 rows=95 SELECT * FROM orders WHERE customer_id = 7 ORDER BY created_at DESC;

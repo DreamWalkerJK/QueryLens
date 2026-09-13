@@ -1,0 +1,6 @@
+{
+  "source": "offline-sample",
+  "database": "PostgreSQL",
+  "query": "SELECT * FROM orders WHERE customer_id = 42 ORDER BY created_at DESC",
+  "plan": {"Node Type":"Sort","Startup Cost":12.4,"Total Cost":120.0,"Plan Rows":12400,"Plans":[{"Node Type":"Seq Scan","Relation Name":"orders","Plan Rows":12400}]}
+}
