@@ -94,7 +94,7 @@ public abstract class DatabaseAdapterBase(ISecretStore? secretStore = null) : ID
         if (sql.Length > 1_000_000) throw new AdapterException(AdapterErrorKind.DataQuality, "单条诊断 SQL 超过 1 MB 上限。");
         var fingerprint = SqlFingerprinter.Fingerprint(sql, p.Dialect);
         return new(Guid.NewGuid(), p.Id, sql, fingerprint.RedactedSql, fingerprint.NormalizedSql, fingerprint.Fingerprint,
-            observed, calls, Duration(totalMs), Duration(minMs), Duration(maxMs), rows, nativeId, database ?? p.Database, false);
+            observed, calls, Duration(totalMs), Duration(minMs), Duration(maxMs), rows, nativeId, database ?? p.Database, false, p.Dialect, SnapshotSemantics.Cumulative);
     }
 
     protected static TimeSpan? Duration(double? ms)

@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\QueryLens.Core\QueryLens.Core.csproj" />
     <ProjectReference Include="..\QueryLens.Infrastructure\QueryLens.Infrastructure.csproj" />
+    <None Include="..\samples\**" Link="samples\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

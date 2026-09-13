@@ -1,2 +1,2 @@
 -- DBA review only; never run automatically.
-GRANT SELECT ON performance_schema.events_statements_summary_by_digest TO 'querylens_reader'@'%';
+GRANT SELECT ON performance_schema.* TO 'querylens_reader'@'%';

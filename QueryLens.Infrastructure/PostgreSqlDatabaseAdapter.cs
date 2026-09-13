@@ -56,7 +56,9 @@ public class PostgreSqlDatabaseAdapter(ISecretStore? secretStore = null) : Datab
         else
         {
             var time = view.Value.Columns.Contains("total_exec_time") ? "total_exec_time" : "total_time";
-            list.Add(await ProbeAsync(c, p, "postgresql.pg_stat_statements", "按扩展实际列读取累计统计；隐藏 SQL 不采集", "SELECT on extension view；pg_read_all_stats 可见其他用户 SQL", $"SELECT query,calls,{time},rows,queryid FROM {view.Value.View} LIMIT 0", token));
+            var rows = view.Value.Columns.Contains("rows") ? "rows" : "NULL";
+            var queryId = view.Value.Columns.Contains("queryid") ? "queryid" : "NULL";
+            list.Add(await ProbeAsync(c, p, "postgresql.pg_stat_statements", "按扩展实际列读取累计统计；隐藏 SQL 不采集", "SELECT on extension view；pg_read_all_stats 可见其他用户 SQL", $"SELECT query,calls,{time},{rows},{queryId} FROM {view.Value.View} LIMIT 0", token));
         }
         list.Add(new("plan-import", CapabilityStatus.Available, "PostgreSQL EXPLAIN (FORMAT JSON) 文件导入", "无需数据库权限"));
         return list;
@@ -74,7 +76,9 @@ public class PostgreSqlDatabaseAdapter(ISecretStore? secretStore = null) : Datab
         var max = execution ? "max_exec_time" : "max_time";
         if (!view.Columns.Contains(min)) min = "NULL";
         if (!view.Columns.Contains(max)) max = "NULL";
-        await using var cmd = Command(c, p, $"SELECT query,calls,{total},{min},{max},rows,queryid::text FROM {view.View} WHERE dbid=(SELECT oid FROM pg_catalog.pg_database WHERE datname=current_database()) AND query IS NOT NULL AND query <> '<insufficient privilege>' ORDER BY {total} DESC LIMIT @limit");
+        var rows = view.Columns.Contains("rows") ? "rows" : "NULL";
+        var queryId = view.Columns.Contains("queryid") ? "queryid::text" : "NULL::text";
+        await using var cmd = Command(c, p, $"SELECT query,calls,{total},{min},{max},{rows},{queryId} FROM {view.View} WHERE dbid=(SELECT oid FROM pg_catalog.pg_database WHERE datname=current_database()) AND query IS NOT NULL AND query <> '<insufficient privilege>' ORDER BY {total} DESC LIMIT @limit");
         Parameter(cmd, "@limit", SafeLimit(limit));
         var result = new List<SlowQuery>(); var observed = DateTimeOffset.UtcNow;
         await using var r = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);

@@ -65,3 +65,4 @@ publish/
 *.user
 tmpapp/
 tmp.cs
+.it/

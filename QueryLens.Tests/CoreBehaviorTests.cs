@@ -138,6 +138,18 @@ public sealed class DiagnosticsTests
     }
 }
 
+public sealed class PlanComparisonTests
+{
+    [Fact]
+    public void Comparison_requires_same_query_semantics()
+    {
+        var root = new PlanNode("Index Scan");
+        var first = new ExecutionPlan(Guid.NewGuid(), null, DatabaseDialect.PostgreSql, "16", "JSON", DateTimeOffset.UtcNow, "{}", root);
+        var second = first with { Id = Guid.NewGuid() };
+        Assert.Throws<IncompatiblePlanException>(() => PlanComparer.Compare(first, second));
+    }
+}
+
 public sealed class LocalStoreTests
 {
     [Fact]
