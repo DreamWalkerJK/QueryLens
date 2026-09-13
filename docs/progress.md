@@ -13,3 +13,11 @@
 Docker 引擎 29.6.1 可用。已有 MySQL Windows 服务和 openGauss 容器属于用户现有环境，不访问配置/凭据、不查询。将创建 QueryLens 专属容器。真实 Huawei GaussDB 未提供，必须独立标记未验证，openGauss 不能替代其验证。
 
 本目标仍在执行。早期框架运行/12 项测试仅表示局部进展，不表示最终验收通过。每次 push 后在此追加真实 hash 和状态，不重写已推送历史。
+
+## 交付审计（当前工作树）
+- `dotnet test QueryLens.slnx -c Release`: 43 passed, 0 failed, 0 skipped。
+- `dotnet build QueryLens.slnx -c Release`: 成功，0 warnings/0 errors。
+- `dotnet publish QueryLens.Desktop/QueryLens.Desktop.csproj -c Release -r win-x64 --self-contained false -o publish/win-x64`: 成功；发布目录为 `publish/win-x64`，包含 Infrastructure 依赖。
+- 启动 `publish/win-x64/QueryLens.Desktop.exe` 后进程保持运行 3 秒，随后由冒烟脚本结束；未自动宣称布局/交互验收通过。
+- 本地 commit：`b17adf6 feat(core): add query analysis solution and adapters`。
+- 推送命令：`git push -u origin codex/querylens-implementation`；未成功，环境无法连接 `github.com:443`（后续 `git ls-remote` 同样失败）。本地 commit 保留，待网络恢复后执行同一命令。
