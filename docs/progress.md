@@ -24,3 +24,4 @@ Docker 引擎 29.6.1 可用。已有 MySQL Windows 服务和 openGauss 容器属
 - 第二次提交：`222efb6 docs(progress): record validation and push status`；再次执行 `git push -u origin codex/querylens-implementation`，仍因无法连接 github.com:443 失败。
 - 增强核心/基础设施后测试仍为 43/43；适配器拆分为独立文件并加入采样间隔、配置校验、取消和错误分类。
 - 第三次提交：`a2407b2 feat(infra): harden adapters and offline contracts`；push 仍因无法连接 github.com:443 失败，本地提交保留。
+- 第四次提交：`60eceef fix(gaussdb): expose product variant in capability details`；push 失败原因仍为环境无法连接 github.com:443。
