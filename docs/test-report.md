@@ -9,3 +9,5 @@
 Docker 29.6.1 可用；真实数据库测试将在专属本地容器进行，既有用户数据库不访问。Huawei GaussDB 未验证。
 
 性能记录待执行，必须包含环境、数据库版本、输入字节/查询数/节点数、导入/解析耗时、峰值内存、CPU、并发和准确性。不能用小样例或测试运行时间证明高性能。
+
+补充验证：增强后的 Core + Infrastructure 契约测试为 43/43 通过，覆盖四方言词法边界、PG/MySQL/SQL Server 计划包装和运行指标、坏文件拒绝、敏感信息、SQLite 持久化、适配器工厂与 GaussDB 未验证声明。`dotnet build QueryLens.slnx -c Release` 与 Windows x64 发布均成功。

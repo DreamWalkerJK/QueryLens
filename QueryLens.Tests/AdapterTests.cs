@@ -26,6 +26,6 @@ public sealed class AdapterTests
     {
         var adapter = new GaussDbAdapter();
         var capabilities = await adapter.GetCapabilitiesAsync(new ConnectionProfile(Guid.NewGuid(), "g", DatabaseDialect.GaussDb, "localhost", 1, "db"));
-        Assert.Equal(CapabilityStatus.Unverified, capabilities.Single().Status);
+        Assert.Contains(capabilities, capability => capability.Name == "gaussdb.statement_history" && capability.Status == CapabilityStatus.Unverified);
     }
 }
