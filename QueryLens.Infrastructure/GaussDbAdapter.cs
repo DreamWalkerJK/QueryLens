@@ -15,6 +15,7 @@ public sealed class GaussDbAdapter(ISecretStore? secretStore = null) : PostgreSq
         var product = version.Contains("openGauss", StringComparison.OrdinalIgnoreCase) ? "openGauss"
             : version.Contains("GaussDB", StringComparison.OrdinalIgnoreCase) ? "GaussDB (PostgreSQL protocol)"
             : "Unrecognized PostgreSQL-protocol product";
+        if (!string.IsNullOrWhiteSpace(p.ProductVariant)) product = $"{product}; variant={p.ProductVariant}";
         string? mode = null;
         try
         {
@@ -31,7 +32,7 @@ public sealed class GaussDbAdapter(ISecretStore? secretStore = null) : PostgreSq
         token.ThrowIfCancellationRequested();
         return Task.FromResult<IReadOnlyList<Capability>>(new[]
         {
-            new Capability("gaussdb.statement_history", CapabilityStatus.Unverified, "PostgreSQL 协议 GaussDB/openGauss：历史视图、字段及权限需按产品版本验证", "依目标产品官方文档及管理员授予的只读权限", "协议兼容不代表系统视图兼容。GaussDB(for MySQL) 应选择 MySQL 协议连接并单独核实产品。"),
+            new Capability("gaussdb.statement_history", CapabilityStatus.Unverified, "PostgreSQL 协议 GaussDB/openGauss：历史视图、字段及权限需按产品版本验证", "依目标产品官方文档及管理员授予的只读权限", "协议兼容不代表系统视图兼容。GaussDB(for MySQL) 应选择 MySQL 协议连接并单独核实产品。配置的产品形态：" + (p.ProductVariant ?? "未指定")),
             new Capability("plan-import", CapabilityStatus.Available, "可导入 JSON/XML 计划；字段不匹配时报告解析错误", "无需数据库权限")
         });
     }
