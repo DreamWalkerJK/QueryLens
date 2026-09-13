@@ -1,13 +1,32 @@
 # 验证记录
 
-目标 Windows 11 x64 / .NET10。首轮发现系统默认 SDK 是 11 preview，现使用 global.json 固定 10.0.102；最终需用稳定 SDK 重跑。
+目标平台为 Windows 11 x64，SDK 由 `global.json` 固定为 .NET 10.0.102。
 
-早期核心测试 12/12 通过，仅覆盖基础字面量、简单节点、诊断和连接元数据回读；未覆盖完整方言、真实数据库、增量、迁移、UI。测试代码和实现正在补强。
+## 自动化验证
 
-早期桌面构建及 win-x64 framework-dependent publish 成功；启动后 3 秒进程仍存活。尚未检查布局或交互，因此桌面冒烟未完成。早期产物不是最终交付版本。
+```text
+dotnet test QueryLens.slnx -c Release
+Passed: 48  Failed: 0  Skipped: 0
 
-Docker 29.6.1 可用；真实数据库测试将在专属本地容器进行，既有用户数据库不访问。Huawei GaussDB 未验证。
+dotnet build QueryLens.slnx -c Release
+0 warnings  0 errors
+```
 
-性能记录待执行，必须包含环境、数据库版本、输入字节/查询数/节点数、导入/解析耗时、峰值内存、CPU、并发和准确性。不能用小样例或测试运行时间证明高性能。
+测试覆盖四方言 SQL 指纹边界、字符串/转义/注释/引用/参数/多语句、PostgreSQL/MySQL/SQL Server 计划解析、未知节点保留、损坏输入拒绝、统计增量与重置、DPAPI/敏感信息脱敏、SQLite 持久化和迁移、适配器错误分类、取消和配置校验。
 
-补充验证：增强后的 Core + Infrastructure 契约测试为 43/43 通过，覆盖四方言词法边界、PG/MySQL/SQL Server 计划包装和运行指标、坏文件拒绝、敏感信息、SQLite 持久化、适配器工厂与 GaussDB 未验证声明。`dotnet build QueryLens.slnx -c Release` 与 Windows x64 发布均成功。
+## 真实数据库验证
+
+- MySQL：专属 `mysql:latest` 容器，MySQL 9.7.1，`performance_schema` 能力可用，读取 5 条摘要；重复采集正确返回 `SamplingInterval`；最小权限账号正确返回 `PermissionDenied`。证据：[artifacts/adapter-verification/mysql-smoke.md](../artifacts/adapter-verification/mysql-smoke.md)。
+- PostgreSQL：专属 `postgres:16` 容器，PostgreSQL 16.15，`DetectAsync` 返回产品/版本/兼容模式；未安装 `pg_stat_statements` 时返回 `Unavailable`，计划导入保持 `Available`。证据：[artifacts/adapter-verification/postgresql-smoke.md](../artifacts/adapter-verification/postgresql-smoke.md)。
+- SQL Server：Showplan XML 离线解析和 Query Store/DMV 读取契约已验证；当前没有可用的专属实例，因此在线能力保持待验证。
+- Huawei GaussDB：没有真实实例；按产品形态和兼容模式保守标记为未验证，openGauss 不替代该验证。
+
+## 桌面冒烟
+
+Windows x64 发布程序 [QueryLens.Desktop.exe](../publish/win-x64/QueryLens.Desktop.exe) 已实际启动，窗口标题为 `QueryLens · 数据库慢查询诊断`，进程保持响应；启动时自动创建 SQLite 表 `connections`、`plans`、`settings`、`slow_queries`，离线样例可写入并在查询/计划列表显示。主流程命令已连接到界面：保存/复制/删除连接、连接测试、导入慢日志/JSON、导入 JSON/XML 计划、基线/比较、取消长任务、脱敏报告导出。
+
+原生文件选择器已接入，启动和交互边界见 [docs/ui-smoke.md](ui-smoke.md)。真正层级计划控件、历史趋势和高级筛选属于后续增强；文本路径仍可完成当前导入导出验收。
+
+## 性能
+
+可复现的 10,000 条指纹和 1,000 份计划解析基线见 [docs/performance.md](performance.md)。该基线报告输入规模、计划节点数、耗时、CPU、托管内存、并发度和结果准确性，不外推生产吞吐量。
