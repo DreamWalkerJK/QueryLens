@@ -9,7 +9,7 @@
 | M3 | 实际数据库驱动、DPAPI 凭据、能力检测与采集约束 | `a2407b2`、`60eceef` 已提交 |
 | M4 | 桌面连接、采集、离线、计划、比较、报告工作流 | `8e3caa5`、`06bcb53` 已提交并已 push |
 | M4.1 | 原生文件选择器与桌面冒烟记录 | `60bc327` 已提交；push 因 GitHub 连接重置未成功 |
-| M5 | MySQL/PostgreSQL disposable 验证、桌面启动、性能和交付文档 | 本轮完成，待提交并 push |
+| M5 | MySQL/PostgreSQL disposable 验证、桌面启动、性能和交付文档 | `faa3384` 已提交并已 push |
 
 ## 验证快照
 
@@ -21,4 +21,4 @@
 
 ## 推送记录
 
-`8e3caa5`、`06bcb53` 已成功推送到 `origin/codex/querylens-implementation`。`60bc327` 已提交但 push 因 GitHub Recv failure/连接重置未成功；本轮文档提交验证后将再次执行 `git push`。
+`8e3caa5`、`06bcb53` 已成功推送到 `origin/codex/querylens-implementation`。`60bc327` 与 `faa3384` 均已成功推送到 `origin/codex/querylens-implementation`。
