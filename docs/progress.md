@@ -10,7 +10,7 @@
 | M4 | 桌面连接、采集、离线、计划、比较、报告工作流 | `8e3caa5`、`06bcb53` 已提交并已 push |
 | M4.1 | 原生文件选择器与桌面冒烟记录 | `60bc327` 已提交并已 push（首次连接重置后重试成功） |
 | M5 | MySQL/PostgreSQL disposable 验证、桌面启动、性能和交付文档 | `faa3384` 已提交并已 push |
-| M6 | 快照/epoch 持久化、基线保护、聚合筛选、TreeView 节点详情和保留策略 | `8e1ee42` 已提交；push 因 GitHub 连接重置暂未成功 |
+| M6 | 快照/epoch 持久化、基线保护、聚合筛选、TreeView 节点详情和保留策略 | `8e1ee42` 已提交并已 push（首次连接重置后重试成功） |
 
 ## 验证快照
 
@@ -22,4 +22,4 @@
 
 ## 推送记录
 
-`8e3caa5`、`06bcb53`、`60bc327`、`faa3384`、`addbf8c` 已成功推送到 `origin/codex/querylens-implementation`。M6 提交 `8e1ee42` 已在本地创建，但 `git push` 于 2026-09-14 因 `Recv failure: Connection was reset` 失败；网络恢复后执行 `git push`。
+`8e3caa5`、`06bcb53`、`60bc327`、`faa3384`、`addbf8c`、`8e1ee42` 和 `2ce07ca` 均已成功推送到 `origin/codex/querylens-implementation`。M6 首次 push 于 2026-09-14 遇到 `Recv failure: Connection was reset`，随后重试成功。
