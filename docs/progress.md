@@ -8,12 +8,13 @@
 | M2 | 方言词法、计划解析、SQLite、导入/增量/诊断测试 | `b17adf6` 已提交 |
 | M3 | 实际数据库驱动、DPAPI 凭据、能力检测与采集约束 | `a2407b2`、`60eceef` 已提交 |
 | M4 | 桌面连接、采集、离线、计划、比较、报告工作流 | `8e3caa5`、`06bcb53` 已提交并已 push |
-| M4.1 | 原生文件选择器与桌面冒烟记录 | `60bc327` 已提交；push 因 GitHub 连接重置未成功 |
+| M4.1 | 原生文件选择器与桌面冒烟记录 | `60bc327` 已提交并已 push（首次连接重置后重试成功） |
 | M5 | MySQL/PostgreSQL disposable 验证、桌面启动、性能和交付文档 | `faa3384` 已提交并已 push |
+| M6 | 快照/epoch 持久化、基线保护、聚合筛选、TreeView 节点详情和保留策略 | `8e1ee42` 已提交；push 因 GitHub 连接重置暂未成功 |
 
 ## 验证快照
 
-- `dotnet test QueryLens.slnx -c Release`: 48 passed, 0 failed, 0 skipped。
+- `dotnet test QueryLens.slnx -c Release`: 56 passed, 0 failed, 0 skipped。
 - `dotnet build QueryLens.slnx -c Release`: 0 warnings, 0 errors。
 - Windows x64 framework-dependent 发布：`publish/win-x64`。
 - MySQL 9.7.1 和 PostgreSQL 16.15 专属容器验证完成；SQL Server 与 Huawei GaussDB 保持待验证。
@@ -21,4 +22,4 @@
 
 ## 推送记录
 
-`8e3caa5`、`06bcb53` 已成功推送到 `origin/codex/querylens-implementation`。`60bc327` 与 `faa3384` 均已成功推送到 `origin/codex/querylens-implementation`。
+`8e3caa5`、`06bcb53`、`60bc327`、`faa3384`、`addbf8c` 已成功推送到 `origin/codex/querylens-implementation`。M6 提交 `8e1ee42` 已在本地创建，但 `git push` 于 2026-09-14 因 `Recv failure: Connection was reset` 失败；网络恢复后执行 `git push`。
