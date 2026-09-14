@@ -38,3 +38,16 @@ dotnet test QueryLens.slnx -c Release
 - [DBA 权限脚本](scripts/db/README.md)
 
 真实数据库验证只使用专属 disposable Docker 容器；不会访问用户现有数据库服务或配置。
+
+## 可复现实例验证
+
+仓库包含一个不写入凭据的 PostgreSQL 验证控制台，源码位于 `scripts/VerificationConsole`。先准备专属 disposable PostgreSQL 实例和只读账号（控制台默认连接数据库 `querylens`、用户 `querylens_reader`），再通过环境变量提供连接信息；密码只在进程环境中读取，不会写入源码或输出：
+
+```powershell
+$env:QUERYLENS_VERIFY_HOST = "127.0.0.1"
+$env:QUERYLENS_VERIFY_PORT = "55432"
+$env:QUERYLENS_VERIFY_PASSWORD = "<runtime-only-password>"
+dotnet run --project scripts/VerificationConsole/VerificationConsole.csproj -c Release
+```
+
+`QUERYLENS_VERIFY_HOST` 默认 `127.0.0.1`，`QUERYLENS_VERIFY_PORT` 默认 `55432`；`QUERYLENS_VERIFY_PASSWORD` 必须设置。控制台会探测产品/版本和能力，并读取最多 20 条慢查询摘要。验证完成后清除当前 PowerShell 会话中的环境变量；不要把真实密码提交到仓库或命令历史。

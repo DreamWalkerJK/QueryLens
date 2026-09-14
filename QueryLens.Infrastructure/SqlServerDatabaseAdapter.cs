@@ -9,7 +9,7 @@ public sealed class SqlServerDatabaseAdapter(ISecretStore? secretStore = null) :
     internal const string QueryStoreSql = """
         SELECT TOP (@limit) CONVERT(nvarchar(max), qt.query_sql_text),
                SUM(rs.count_executions),
-               SUM(rs.avg_duration * rs.count_executions) / NULLIF(SUM(rs.count_executions), 0) / 1000.0,
+               SUM(rs.avg_duration * rs.count_executions) / 1000.0,
                MIN(rs.min_duration) / 1000.0, MAX(rs.max_duration) / 1000.0,
                MAX(rs.last_execution_time), CONVERT(nvarchar(64), q.query_hash, 1)
         FROM sys.query_store_query_text AS qt
@@ -45,15 +45,40 @@ public sealed class SqlServerDatabaseAdapter(ISecretStore? secretStore = null) :
         return new DatabaseInfo($"Microsoft SQL Server ({r.GetString(1)})", r.GetString(0), Convert.ToString(r.GetValue(2), System.Globalization.CultureInfo.InvariantCulture));
     });
 
+    internal const string DmvSql = """
+        SELECT TOP (@limit) CONVERT(nvarchar(max), st.text), qs.execution_count,
+               qs.total_elapsed_time / 1000.0, qs.min_elapsed_time / 1000.0, qs.max_elapsed_time / 1000.0,
+               qs.last_execution_time, CONVERT(nvarchar(64), qs.sql_handle, 1)
+        FROM sys.dm_exec_query_stats AS qs
+        CROSS APPLY sys.dm_exec_sql_text(qs.sql_handle) AS st
+        WHERE st.text IS NOT NULL ORDER BY qs.total_elapsed_time DESC
+        """;
+    private static async Task<string?> QueryStoreStateAsync(SqlConnection c, ConnectionProfile p, CancellationToken token)
+    {
+        await using var cmd = Command(c, p, "SELECT actual_state_desc FROM sys.database_query_store_options");
+        return Convert.ToString(await cmd.ExecuteScalarAsync(token), System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     public override Task<IReadOnlyList<Capability>> GetCapabilitiesAsync(ConnectionProfile p, CancellationToken token = default) => GuardAsync<IReadOnlyList<Capability>>(async () =>
     {
         await using var c = await OpenAsync(p, token).ConfigureAwait(false);
-        var list = new List<Capability>
+        var list = new List<Capability>();
+        try
         {
-            await ProbeAsync(c, p, "sqlserver.query_store", "读取 Query Store 累计运行时统计", "VIEW DATABASE STATE；Query Store 由 DBA 启用", "SELECT TOP (0) desired_state_desc, actual_state_desc FROM sys.database_query_store_options", token),
-            await ProbeAsync(c, p, "sqlserver.dm_exec_query_stats", "读取缓存 DMV（重启或淘汰后数据会消失）", "VIEW SERVER STATE", "SELECT TOP (0) * FROM sys.dm_exec_query_stats", token),
-            new("sqlserver.showplan_xml", CapabilityStatus.Unverified, "导入 Showplan XML；显式采集需隔离连接并由用户触发", "SHOWPLAN 权限（目标数据库）")
-        };
+            var state = await QueryStoreStateAsync(c, p, token).ConfigureAwait(false);
+            var enabled = state is "READ_WRITE" or "READ_ONLY";
+            list.Add(new("sqlserver.query_store", enabled ? CapabilityStatus.Available : CapabilityStatus.Unavailable,
+                "读取 Query Store 累计运行时统计", "VIEW DATABASE STATE；Query Store 由 DBA 启用",
+                enabled ? $"Query Store 状态：{state}" : $"Query Store 状态为 {state ?? "未知"}；读取统计时回退到 DMV。"));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var error = AdapterErrors.Classify(ex);
+            list.Add(new("sqlserver.query_store", error.Kind == AdapterErrorKind.PermissionDenied ? CapabilityStatus.PermissionDenied : CapabilityStatus.Unavailable,
+                "读取 Query Store 累计运行时统计", "VIEW DATABASE STATE；Query Store 由 DBA 启用", error.Message));
+        }
+        list.Add(await ProbeAsync(c, p, "sqlserver.dm_exec_query_stats", "读取缓存 DMV（重启或淘汰后数据会消失）", "VIEW SERVER STATE", "SELECT TOP (0) total_elapsed_time FROM sys.dm_exec_query_stats", token));
+        list.Add(new("sqlserver.showplan_xml", CapabilityStatus.Unverified, "导入 Showplan XML；显式采集需隔离连接并由用户触发", "SHOWPLAN 权限（目标数据库）"));
         return list;
     });
 
@@ -61,7 +86,19 @@ public sealed class SqlServerDatabaseAdapter(ISecretStore? secretStore = null) :
     {
         TakeSample(p, token);
         await using var c = await OpenAsync(p, token).ConfigureAwait(false);
-        await using var cmd = Command(c, p, QueryStoreSql); Parameter(cmd, "@limit", SafeLimit(limit));
+        var useQueryStore = true;
+        try
+        {
+            var state = await QueryStoreStateAsync(c, p, token).ConfigureAwait(false);
+            useQueryStore = state is "READ_WRITE" or "READ_ONLY";
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var error = AdapterErrors.Classify(ex);
+            if (error.Kind is AdapterErrorKind.Unsupported or AdapterErrorKind.PermissionDenied) useQueryStore = false;
+            else throw error;
+        }
+        await using var cmd = Command(c, p, useQueryStore ? QueryStoreSql : DmvSql); Parameter(cmd, "@limit", SafeLimit(limit));
         var result = new List<SlowQuery>(); await using var r = await cmd.ExecuteReaderAsync(token).ConfigureAwait(false);
         while (await r.ReadAsync(token).ConfigureAwait(false))
         {

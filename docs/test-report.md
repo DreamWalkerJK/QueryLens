@@ -6,13 +6,13 @@
 
 ```text
 dotnet test QueryLens.slnx -c Release
-Passed: 48  Failed: 0  Skipped: 0
+Passed: 56  Failed: 0  Skipped: 0
 
 dotnet build QueryLens.slnx -c Release
 0 warnings  0 errors
 ```
 
-测试覆盖四方言 SQL 指纹边界、字符串/转义/注释/引用/参数/多语句、PostgreSQL/MySQL/SQL Server 计划解析、未知节点保留、损坏输入拒绝、统计增量与重置、DPAPI/敏感信息脱敏、SQLite 持久化和迁移、适配器错误分类、取消和配置校验。
+测试覆盖四方言 SQL 指纹边界、字符串/转义/注释/引用/参数/多语句、PostgreSQL/MySQL/SQL Server 计划解析、未知节点保留、损坏输入拒绝、统计增量与重置、DPAPI/敏感信息脱敏、SQLite 持久化和迁移、快照分页/epoch 校验/缺失条目与基线保护、适配器错误分类、取消和配置校验。
 
 ## 真实数据库验证
 
@@ -23,9 +23,9 @@ dotnet build QueryLens.slnx -c Release
 
 ## 桌面冒烟
 
-Windows x64 发布程序 [QueryLens.Desktop.exe](../publish/win-x64/QueryLens.Desktop.exe) 已实际启动，窗口标题为 `QueryLens · 数据库慢查询诊断`，进程保持响应；启动时自动创建 SQLite 表 `connections`、`plans`、`settings`、`slow_queries`，离线样例可写入并在查询/计划列表显示。主流程命令已连接到界面：保存/复制/删除连接、连接测试、导入慢日志/JSON、导入 JSON/XML 计划、基线/比较、取消长任务、脱敏报告导出。
+Windows x64 发布程序 [QueryLens.Desktop.exe](../publish/win-x64/QueryLens.Desktop.exe) 已实际启动，窗口标题为 `QueryLens · 数据库慢查询诊断`，进程保持响应；启动时自动创建 SQLite 表 `connections`、`plans`、`settings`、`slow_queries`，离线样例可写入并在查询/计划列表显示。主流程命令已连接到界面：保存/复制/删除连接、连接测试、导入慢日志/JSON、指纹聚合/筛选/趋势、导入 JSON/XML 计划、TreeView 节点详情、基线/比较、保留策略、取消长任务、脱敏报告导出。
 
-原生文件选择器已接入，启动和交互边界见 [docs/ui-smoke.md](ui-smoke.md)。真正层级计划控件、历史趋势和高级筛选属于后续增强；文本路径仍可完成当前导入导出验收。
+原生文件选择器已接入，启动和交互边界见 [docs/ui-smoke.md](ui-smoke.md)。真正层级计划控件、历史趋势、筛选和保留策略已接入；原生文件选择器仍保留 Windows Shell 人工点击验收步骤。
 
 ## 性能
 

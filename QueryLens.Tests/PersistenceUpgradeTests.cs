@@ -45,4 +45,46 @@ public sealed class PersistenceUpgradeTests
             if (File.Exists(path + "-wal")) File.Delete(path + "-wal");
         }
     }
+
+    [Fact]
+    public async Task Snapshot_round_trip_and_filtered_paging_keep_source_boundaries()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"querylens-snapshot-{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var store = new LocalStore(path);
+            await store.InitializeAsync();
+            var cid = Guid.NewGuid();
+            var fingerprint = SqlFingerprinter.Fingerprint("select * from t where id=1", DatabaseDialect.MySql);
+            var metadata = new SnapshotMetadata(Guid.NewGuid(), cid, DatabaseDialect.MySql, "perf", DateTimeOffset.UtcNow, 100, true, "db", "i1", "s1", true);
+            var query = new SlowQuery(Guid.NewGuid(), cid, "select * from t where id=1", fingerprint.RedactedSql, fingerprint.NormalizedSql, fingerprint.Fingerprint, metadata.CollectedAt, 2, TimeSpan.FromMilliseconds(10), null, null, null, "native", "db", false, DatabaseDialect.MySql, SnapshotSemantics.Cumulative, CounterEpoch: "e1");
+            await store.SaveSnapshotAsync(new SlowQuerySnapshot(metadata, [query]));
+            var result = await store.GetSlowQueriesPageAsync(cid, 10, 0, false, "perf");
+            var saved = Assert.Single(result);
+            Assert.Equal(metadata.Id, saved.SnapshotId);
+            Assert.Equal("e1", saved.CounterEpoch);
+            Assert.Empty(await store.GetSlowQueriesPageAsync(cid, 10, 0, true, "perf"));
+        }
+        finally
+        {
+            foreach (var file in new[] { path, path + "-wal", path + "-shm" }) if (File.Exists(file)) File.Delete(file);
+        }
+    }
+
+    [Fact]
+    public async Task Retention_does_not_delete_persisted_baseline_plans()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"querylens-retention-{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var store = new LocalStore(path);
+            await store.InitializeAsync();
+            var old = DateTimeOffset.UtcNow.AddDays(-20);
+            var plan = PlanParser.ParseJson("{\"Node Type\":\"Seq Scan\"}", DatabaseDialect.PostgreSql) with { CollectedAt = old, IsBaseline = true, QueryFingerprint = "fp" };
+            await store.SavePlanAsync(plan);
+            await store.ApplyRetentionAsync(7);
+            Assert.True(Assert.Single(await store.GetPlansAsync()).IsBaseline);
+        }
+        finally { foreach (var file in new[] { path, path + "-wal", path + "-shm" }) if (File.Exists(file)) File.Delete(file); }
+    }
 }

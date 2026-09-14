@@ -184,3 +184,48 @@ public sealed class LocalStoreTests
         }
     }
 }
+
+public sealed class SnapshotDeltaTests
+{
+    private static SlowQuery Query(string key, long calls, double total, string epoch = "e1") =>
+        new(Guid.NewGuid(), Guid.Parse("11111111-1111-1111-1111-111111111111"), "select 1", "select ?", "select ?", key, DateTimeOffset.UtcNow, calls, TimeSpan.FromMilliseconds(total), null, null, null, key, "db", false, DatabaseDialect.MySql, SnapshotSemantics.Cumulative, CounterEpoch: epoch);
+
+    [Fact]
+    public void Verified_complete_snapshots_compute_delta_and_flag_eviction()
+    {
+        var cid = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var first = new SlowQuerySnapshot(new(Guid.NewGuid(), cid, DatabaseDialect.MySql, "performance_schema", DateTimeOffset.UtcNow, 2, true, "db", "instance-1", "stats-1", true), [Query("a", 10, 100), Query("gone", 4, 20)]);
+        var second = new SlowQuerySnapshot(new(Guid.NewGuid(), cid, DatabaseDialect.MySql, "performance_schema", DateTimeOffset.UtcNow.AddMinutes(1), 2, true, "db", "instance-1", "stats-1", true), [Query("a", 15, 175)]);
+        var deltas = SnapshotDelta.Compute(first, second);
+        Assert.Equal(5, Assert.Single(deltas, x => x.Key == "native:a").Delta.Calls);
+        Assert.True(Assert.Single(deltas, x => x.Key == "native:gone").MissingInCurrent);
+    }
+
+    [Fact]
+    public void Unverified_epoch_and_window_metrics_are_not_presented_as_deltas()
+    {
+        var cid = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var a = Query("a", 10, 100) with { Semantics = SnapshotSemantics.Window };
+        var b = Query("a", 12, 120) with { Semantics = SnapshotSemantics.Window };
+        var first = new SlowQuerySnapshot(new(Guid.NewGuid(), cid, DatabaseDialect.MySql, "source", DateTimeOffset.UtcNow, 10, true), [a]);
+        var second = new SlowQuerySnapshot(new(Guid.NewGuid(), cid, DatabaseDialect.MySql, "source", DateTimeOffset.UtcNow.AddMinutes(1), 10, true), [b]);
+        var delta = Assert.Single(SnapshotDelta.Compute(first, second));
+        Assert.False(delta.Delta.Comparable);
+        Assert.Contains("epoch", delta.Delta.Reason!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Counter_reset_or_changed_batch_is_rejected()
+    {
+        var before = Query("a", 10, 100);
+        var after = Query("a", 2, 20);
+        var reset = SnapshotDelta.Compute(before, after);
+        Assert.False(reset.Comparable);
+        Assert.Contains("重置", reset.Reason!);
+
+        var cid = before.ConnectionId!.Value;
+        var first = new SlowQuerySnapshot(new(Guid.NewGuid(), cid, DatabaseDialect.MySql, "source", DateTimeOffset.UtcNow, 10, true, "db", "i", "s", true), [before]);
+        var second = new SlowQuerySnapshot(new(Guid.NewGuid(), cid, DatabaseDialect.MySql, "source", DateTimeOffset.UtcNow.AddMinutes(1), 20, true, "db", "i", "s", true), [after]);
+        Assert.Contains("批次", Assert.Single(SnapshotDelta.Compute(first, second)).Delta.Reason!);
+    }
+}

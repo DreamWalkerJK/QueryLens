@@ -38,13 +38,37 @@ public static class SlowQueryAggregator
     }
 }
 public sealed record CounterDelta(long Calls, TimeSpan? TotalDuration, bool Comparable, string? Reason = null);
+public sealed record SnapshotEntryDelta(string Key, CounterDelta Delta, bool MissingInPrevious = false, bool MissingInCurrent = false);
 public static class SnapshotDelta
 {
+    public static IReadOnlyList<SnapshotEntryDelta> Compute(SlowQuerySnapshot previous, SlowQuerySnapshot current)
+    {
+        var m = Validate(previous.Metadata, current.Metadata);
+        var old = previous.Queries.GroupBy(Key).ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+        var now = current.Queries.GroupBy(Key).ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+        var keys = old.Keys.Union(now.Keys, StringComparer.OrdinalIgnoreCase);
+        return keys.Select(key => !old.TryGetValue(key, out var a)
+            ? new SnapshotEntryDelta(key, new CounterDelta(0, null, false, "条目在前一份快照中缺失"), true, false)
+            : !now.TryGetValue(key, out var b)
+                ? new SnapshotEntryDelta(key, new CounterDelta(0, null, false, "条目已从统计视图淘汰或在本次批次缺失"), false, true)
+                : new SnapshotEntryDelta(key, m ?? Compute(a, b))).ToList();
+    }
+
+    private static string Key(SlowQuery q) => !string.IsNullOrWhiteSpace(q.NativeQueryId) ? $"native:{q.NativeQueryId}" : $"fingerprint:{q.Fingerprint}";
+    private static CounterDelta? Validate(SnapshotMetadata a, SnapshotMetadata b)
+    {
+        if (a.Dialect != b.Dialect || a.ConnectionId != b.ConnectionId || !string.Equals(a.Database, b.Database, StringComparison.OrdinalIgnoreCase)) return new(0, null, false, "快照来源、方言或数据库不同");
+        if (b.CollectedAt <= a.CollectedAt) return new(0, null, false, "快照时间顺序无效");
+        if (!a.IsComplete || !b.IsComplete || a.RequestedLimit != b.RequestedLimit) return new(0, null, false, "批次不完整或批次上限不同，无法证明条目未被淘汰");
+        if (!a.EpochsVerified || !b.EpochsVerified || string.IsNullOrWhiteSpace(a.InstanceEpoch) || string.IsNullOrWhiteSpace(b.InstanceEpoch) || !string.Equals(a.InstanceEpoch, b.InstanceEpoch, StringComparison.Ordinal) || !string.Equals(a.StatisticsEpoch, b.StatisticsEpoch, StringComparison.Ordinal)) return new(0, null, false, "统计 epoch 未验证或已变化，拒绝计算累计计数器增量");
+        return null;
+    }
     public static CounterDelta Compute(SlowQuery previous, SlowQuery current)
     {
-        if (previous.Semantics != SnapshotSemantics.Cumulative || current.Semantics != SnapshotSemantics.Cumulative) return new(current.Calls, current.TotalDuration, true);
+        if (previous.Semantics != SnapshotSemantics.Cumulative || current.Semantics != SnapshotSemantics.Cumulative) return new(0, null, false, "窗口统计没有可计算的累计增量");
+        if (string.IsNullOrWhiteSpace(previous.CounterEpoch) || string.IsNullOrWhiteSpace(current.CounterEpoch) || !string.Equals(previous.CounterEpoch, current.CounterEpoch, StringComparison.Ordinal)) return new(0, null, false, "条目计数器 epoch 未验证或已变化");
         if (previous.Fingerprint != current.Fingerprint || (previous.ConnectionId.HasValue && current.ConnectionId.HasValue && previous.ConnectionId != current.ConnectionId)) return new(0, null, false, "指纹或连接来源不同");
-        if (current.Calls < previous.Calls || (current.TotalDuration.HasValue && previous.TotalDuration.HasValue && current.TotalDuration < previous.TotalDuration)) return new(0, null, false, "检测到统计重置、重启或条目淘汰");
+        if (current.Calls < previous.Calls || (current.TotalDuration.HasValue && previous.TotalDuration.HasValue && current.TotalDuration < previous.TotalDuration) || (current.Rows.HasValue && previous.Rows.HasValue && current.Rows < previous.Rows)) return new(0, null, false, "检测到统计重置、重启或条目淘汰");
         return new(current.Calls - previous.Calls, current.TotalDuration.HasValue && previous.TotalDuration.HasValue ? current.TotalDuration - previous.TotalDuration : null, true);
     }
 }
