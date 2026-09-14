@@ -22,4 +22,4 @@
 
 ## 推送记录
 
-`8e3caa5`、`06bcb53`、`60bc327`、`faa3384`、`addbf8c`、`8e1ee42` 和 `2ce07ca` 均已成功推送到 `origin/codex/querylens-implementation`。M6 首次 push 于 2026-09-14 遇到 `Recv failure: Connection was reset`，随后重试成功。
+`8e3caa5`、`06bcb53`、`60bc327`、`faa3384`、`addbf8c`、`8e1ee42`、`2ce07ca` 和 `9f138b0` 均已成功推送到 `origin/codex/querylens-implementation`。M6 首次 push 于 2026-09-14 遇到 `Recv failure: Connection was reset`，随后重试成功；`9f138b0` 补充了连接测试临时凭据清理、指纹切换、基线保持和保留策略确认。
